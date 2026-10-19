@@ -6,9 +6,10 @@ services:
       POSTGRES_PASSWORD: Londonfullhamn98.
       POSTGRES_DB: eventapp
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
 volumes:
-  pgdata:s
+  pgdata:
+    driver: local
