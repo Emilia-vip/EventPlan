@@ -5,7 +5,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
     "dev": "tsx watch --env-file=.env src/server.ts"
   },
   "keywords": [],
@@ -17,9 +19,12 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
+    "testcontainers": "^12.2.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

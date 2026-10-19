@@ -1,25 +1,27 @@
-import type { FastifyInstance } from "fastify";
-import * as events from "../services/events.js";
-import { idSchema, createEventSchema, registrationSchema } from "../validation.js";
+import { createEvent, getEvent, listEvents, register } from "../services/events.js";
+import { createEventSchema, idSchema, registrationSchema } from "../validation.js";
 
-export async function eventsRoutes(app: FastifyInstance) {
-  app.get("/events", async () => events.listEvents());
-
-  app.get("/events/:id", async (request) => {
-    const id = idSchema.parse((request.params as { id: string }).id);
-    return events.getEvent(id);
+export async function eventsRoutes(app) {
+  app.get("/events", async () => {
+    return await listEvents();
   });
 
   app.post("/events", async (request, reply) => {
     const input = createEventSchema.parse(request.body);
+    const event = await createEvent(input);
     reply.code(201);
-    return events.createEvent(input);
+    return event;
+  });
+
+  app.get("/events/:id", async (request) => {
+    return await getEvent(idSchema.parse(request.params.id));
   });
 
   app.post("/events/:id/registrations", async (request, reply) => {
-    const id = idSchema.parse((request.params as { id: string }).id);
+    const eventId = idSchema.parse(request.params.id);
     const input = registrationSchema.parse(request.body);
+    const registration = await register(eventId, input);
     reply.code(201);
-    return events.register(id, input);
+    return registration;
   });
 }

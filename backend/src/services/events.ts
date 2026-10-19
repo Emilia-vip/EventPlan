@@ -2,7 +2,7 @@ import { pool } from "../db.js";
 import { AppError, notFound } from "../errors.js";
 import type { CreateEventInput, RegistrationInput } from "../validation.js";
 
-interface EventRow {
+export interface EventRow {
   id: string;
   title: string;
   description: string;
@@ -12,7 +12,7 @@ interface EventRow {
   seats_taken: number;
 }
 
-function toEventDto(row: EventRow) {
+export function toEventDto(row: EventRow) {
   const seatsLeft = Math.max(0, row.capacity - row.seats_taken);
   return {
     id: row.id,
