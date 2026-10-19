@@ -3,7 +3,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: eventapp
-      POSTGRES_PASSWORD: Londonfullhamn98.
+      POSTGRES_PASSWORD: NanaEmiliaAma12.
       POSTGRES_DB: eventapp
     ports:
       - "5432:5432"
