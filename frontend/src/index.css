@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=PT+Sans+Narrow:wght@400;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", sans-serif;
+  --font-display: "Instrument Serif", serif;
+  --font-narrow: "PT Sans Narrow", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: var(--font-sans);
+  background: #f5efe3;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  color: #f8f2e6;
+  background: #7a5c45;
+}
+
+.hero-texture {
+  background-image:
+    radial-gradient(circle at 88% 18%, rgb(139 94 60 / 8%) 0, transparent 18%),
+    radial-gradient(circle at 72% 72%, rgb(181 157 130 / 14%) 0, transparent 20%);
+}
+
+/* Date/time picker in brown & beige */
+input[type="datetime-local"] {
+  color: #3b2a20;
+  accent-color: #8b5e3c;
+  color-scheme: light;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+  filter: sepia(1) saturate(2.2) hue-rotate(-12deg) brightness(0.7);
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
+  color: #f8f2e6;
+  background: #8b5e3c;
+  outline: none;
+}
