@@ -63,9 +63,14 @@ jobs:
       DOMAIN: ${{ vars.DOMAIN }}
       S3_BUCKET: ${{ vars.S3_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
-      IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/eventplan
     steps:
       - uses: actions/checkout@v4
+
+      # GHCR kräver små bokstäver i image-namnet, och GitHub-uttryck kan inte göra det
+      - name: Sätt image-prefix
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "IMAGE_PREFIX=ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')/eventplan" >> "$GITHUB_ENV"
 
       - uses: docker/login-action@v3
         with:
