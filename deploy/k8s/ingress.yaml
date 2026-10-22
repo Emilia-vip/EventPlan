@@ -1,0 +1,37 @@
+# Traefik (standard i k3s) terminerar TLS och balanserar trafik över alla backend-pods.
+# api.<domän> går till backend, cdn.<domän> till de statiska filerna.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eventplan
+  namespace: eventplan
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - api.${DOMAIN}
+        - cdn.${DOMAIN}
+      secretName: eventplan-tls
+  rules:
+    - host: api.${DOMAIN}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  name: http
+    - host: cdn.${DOMAIN}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  name: http

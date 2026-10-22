@@ -2,8 +2,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/app.js";
 import { pool } from "../../src/db.js";
+import { adminSession, bearer, signup, type TestSession } from "./helpers.js";
 
 let app: FastifyInstance;
+let admin: TestSession;
 
 beforeAll(async () => {
   app = await buildApp();
@@ -15,13 +17,15 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await pool.query("TRUNCATE events, registrations CASCADE");
+  await pool.query("TRUNCATE events, registrations, users CASCADE");
+  admin = await adminSession(app);
 });
 
 const createEvent = (capacity: number) =>
   app.inject({
     method: "POST",
     url: "/events",
+    headers: bearer(admin),
     payload: {
       title: "Fest",
       description: "Julfest",
@@ -31,11 +35,11 @@ const createEvent = (capacity: number) =>
     },
   });
 
-const registerTo = (eventId: string, email: string) =>
+const registerTo = (eventId: string, session: TestSession) =>
   app.inject({
     method: "POST",
     url: `/events/${eventId}/registrations`,
-    payload: { name: "Anna", email },
+    headers: bearer(session),
   });
 
 describe("events API", () => {
@@ -54,26 +58,70 @@ describe("events API", () => {
     expect(res.json()).toHaveLength(1);
   });
 
-  it("nekar dubbelanmälan med samma e-post", async () => {
-    const { id } = (await createEvent(10)).json();
-    expect((await registerTo(id, "anna@example.com")).statusCode).toBe(201);
+  it("nekar skapande av event för vanliga användare", async () => {
+    const customer = await signup(app, "kund@example.com");
+    const res = await app.inject({
+      method: "POST",
+      url: "/events",
+      headers: bearer(customer),
+      payload: { title: "Fest", startsAt: "2030-12-24T18:00:00.000Z", capacity: 5 },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toBe("FORBIDDEN");
+  });
 
-    const res = await registerTo(id, "anna@example.com");
+  it("nekar skapande av event utan inloggning", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/events",
+      payload: { title: "Fest", startsAt: "2030-12-24T18:00:00.000Z", capacity: 5 },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("nekar dubbelbokning av samma konto", async () => {
+    const { id } = (await createEvent(10)).json();
+    const anna = await signup(app, "anna@example.com");
+    expect((await registerTo(id, anna)).statusCode).toBe(201);
+
+    const res = await registerTo(id, anna);
     expect(res.statusCode).toBe(409);
     expect(res.json().error).toBe("ALREADY_REGISTERED");
   });
 
-  it("överbokar inte vid samtidiga anmälningar", async () => {
-    const { id } = (await createEvent(3)).json();
+  it("nekar bokning utan inloggning", async () => {
+    const { id } = (await createEvent(10)).json();
+    const res = await app.inject({ method: "POST", url: `/events/${id}/registrations` });
+    expect(res.statusCode).toBe(401);
+  });
 
-    const results = await Promise.all(
-      Array.from({ length: 10 }, (_, i) => registerTo(id, `user${i}@example.com`)),
+  it("överbokar inte vid samtidiga bokningar", async () => {
+    const { id } = (await createEvent(3)).json();
+    const sessions = await Promise.all(
+      Array.from({ length: 10 }, (_, i) => signup(app, `user${i}@example.com`, `User ${i}`)),
     );
+
+    const results = await Promise.all(sessions.map((s) => registerTo(id, s)));
 
     expect(results.filter((r) => r.statusCode === 201)).toHaveLength(3);
     expect(results.filter((r) => r.statusCode === 409)).toHaveLength(7);
 
     const event = (await app.inject({ method: "GET", url: `/events/${id}` })).json();
     expect(event).toMatchObject({ seatsTaken: 3, seatsLeft: 0, isFull: true });
+  });
+
+  it("visar användarens biljetter under /me/tickets", async () => {
+    const { id } = (await createEvent(10)).json();
+    const anna = await signup(app, "anna@example.com");
+    await registerTo(id, anna);
+
+    const res = await app.inject({ method: "GET", url: "/me/tickets", headers: bearer(anna) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toHaveLength(1);
+    expect(res.json()[0]).toMatchObject({ event: { id, title: "Fest" } });
+
+    const other = await signup(app, "other@example.com");
+    const none = await app.inject({ method: "GET", url: "/me/tickets", headers: bearer(other) });
+    expect(none.json()).toEqual([]);
   });
 });

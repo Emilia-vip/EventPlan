@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env
+.env.*
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
+COMMANDS.md
+tests
+vitest.config.ts

@@ -1,0 +1,21 @@
+# Körs före varje deploy (CI väntar på att den blir klar). Migreringar är idempotenta.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-${RELEASE}
+  namespace: eventplan
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ${BACKEND_IMAGE}
+          command: ["node", "--import", "tsx", "src/migrate.ts"]
+          envFrom:
+            - secretRef:
+                name: eventplan-backend
+            - secretRef:
+                name: eventplan-admin

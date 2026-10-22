@@ -12,10 +12,17 @@ export const createEventSchema = z.object({
   capacity: z.number().int().min(1, "Minst 1 plats").max(100_000),
 });
 
-export const registrationSchema = z.object({
+export const signupSchema = z.object({
   name: z.string().trim().min(1, "Namn krävs").max(200),
   email: z.string().trim().toLowerCase().pipe(z.email("Ogiltig e-postadress")),
+  password: z.string().min(8, "Lösenordet måste vara minst 8 tecken").max(200),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Ogiltig e-postadress")),
+  password: z.string().min(1, "Lösenord krävs").max(200),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
-export type RegistrationInput = z.infer<typeof registrationSchema>;
+export type SignupInput = z.infer<typeof signupSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;

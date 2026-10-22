@@ -1,0 +1,49 @@
+# Daglig dump av databasen till S3.
+# Secret "eventplan-db" ger lösenordet till Postgres, Secret "eventplan-s3" ger AWS-credentials.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup
+  namespace: eventplan
+spec:
+  schedule: "0 3 * * *"
+  timeZone: "Europe/Stockholm"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              env:
+                - name: PGHOST
+                  value: postgres
+                - name: PGUSER
+                  value: eventapp
+                - name: PGDATABASE
+                  value: eventapp
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: eventplan-db
+                      key: POSTGRES_PASSWORD
+                - name: S3_BUCKET
+                  value: ${S3_BUCKET}
+              envFrom:
+                - secretRef:
+                    name: eventplan-s3
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  apk add --no-cache aws-cli >/dev/null
+                  FILE="eventplan-$(date -u +%Y-%m-%dT%H%M%SZ).sql.gz"
+                  pg_dump --no-owner | gzip > "/tmp/$FILE"
+                  aws s3 cp "/tmp/$FILE" "s3://$S3_BUCKET/backups/$FILE"
+                  echo "Backup klar: $FILE"

@@ -1,6 +1,6 @@
 import { pool } from "../db.js";
 import { AppError, notFound } from "../errors.js";
-import type { CreateEventInput, RegistrationInput } from "../validation.js";
+import type { CreateEventInput } from "../validation.js";
 
 export interface EventRow {
   id: string;
@@ -51,7 +51,29 @@ export async function createEvent(input: CreateEventInput) {
   return toEventDto(rows[0]!);
 }
 
-export async function register(eventId: string, input: RegistrationInput) {
+export interface RegistrationRequest {
+  name: string;
+  email: string;
+  userId: string;
+}
+
+export async function listTicketsForUser(userId: string) {
+  const { rows } = await pool.query<EventRow & { registration_id: string; registration_created_at: Date }>(
+    `SELECT r.id AS registration_id, r.created_at AS registration_created_at, e.*
+     FROM registrations r
+     JOIN events e ON e.id = r.event_id
+     WHERE r.user_id = $1
+     ORDER BY e.starts_at`,
+    [userId],
+  );
+  return rows.map((row) => ({
+    id: row.registration_id,
+    createdAt: row.registration_created_at.toISOString(),
+    event: toEventDto(row),
+  }));
+}
+
+export async function register(eventId: string, input: RegistrationRequest) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -70,8 +92,8 @@ export async function register(eventId: string, input: RegistrationInput) {
     }
 
     const { rows } = await client.query<{ id: string }>(
-      `INSERT INTO registrations (event_id, name, email) VALUES ($1, $2, $3) RETURNING id`,
-      [eventId, input.name, input.email],
+      `INSERT INTO registrations (event_id, name, email, user_id) VALUES ($1, $2, $3, $4) RETURNING id`,
+      [eventId, input.name, input.email, input.userId],
     );
 
     await client.query("COMMIT");

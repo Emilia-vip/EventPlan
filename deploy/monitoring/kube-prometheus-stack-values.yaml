@@ -1,0 +1,25 @@
+# Prometheus + Grafana. Installeras med:
+#   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f kube-prometheus-stack-values.yaml
+grafana:
+  # Admin-login ligger i en Secret som skapas i CI (keys: admin-user, admin-password)
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  # Loki läggs till som datakälla i Grafana (se loki-values.yaml)
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    # Plocka upp ServiceMonitors från alla namespaces, inte bara de med rätt release-label
+    serviceMonitorSelectorNilUsesHelmValues: false
+    retention: 7d

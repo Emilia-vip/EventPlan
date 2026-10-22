@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEventSchema, registrationSchema } from "../../src/validation.js";
+import { createEventSchema, signupSchema } from "../../src/validation.js";
 
 const inOneDay = () => new Date(Date.now() + 86_400_000).toISOString();
 
@@ -31,14 +31,19 @@ describe("createEventSchema", () => {
   });
 });
 
-describe("registrationSchema", () => {
+describe("signupSchema", () => {
   it("gör om e-posten till små bokstäver", () => {
-    const reg = registrationSchema.parse({ name: "Anna", email: "  Anna@Test.SE " });
-    expect(reg.email).toBe("anna@test.se");
+    const user = signupSchema.parse({ name: "Anna", email: "  Anna@Test.SE ", password: "hemligt123" });
+    expect(user.email).toBe("anna@test.se");
   });
 
   it("avvisar ogiltig e-post", () => {
-    const result = registrationSchema.safeParse({ name: "Anna", email: "inte-en-epost" });
+    const result = signupSchema.safeParse({ name: "Anna", email: "inte-en-epost", password: "hemligt123" });
+    expect(result.success).toBe(false);
+  });
+
+  it("avvisar för kort lösenord", () => {
+    const result = signupSchema.safeParse({ name: "Anna", email: "anna@test.se", password: "kort" });
     expect(result.success).toBe(false);
   });
 });
