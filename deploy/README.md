@@ -39,6 +39,18 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/do
 kubectl apply -f deploy/setup/cert-manager-issuer.yaml
 ```
 
+Efter detta skickar Traefik all `http://`-trafik vidare till `https://` (se nästa steg).
+
+## 3b. HTTP → HTTPS
+
+k3s levererar Traefik som standard men skickar inte `http://` vidare till `https://`. Aktivera omdirigeringen
+en gång (k3s konfigurerar om Traefik själv, ingen helm-installation behövs):
+
+```bash
+kubectl apply -f deploy/setup/traefik-https-redirect.yaml
+curl -I http://api.<domän>   # ska ge 301 med Location: https://api.<domän>/
+```
+
 ## 4. Övervakning (en gång)
 
 Installera Prometheus, Grafana, Loki och Alloy. Grafana-login ligger i en Secret:
@@ -57,6 +69,15 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
 helm upgrade --install loki grafana/loki -n monitoring -f deploy/monitoring/loki-values.yaml
 helm upgrade --install alloy grafana/alloy -n monitoring -f deploy/monitoring/alloy-values.yaml
 ```
+
+Dashboarden ligger i koden och laddas in i Grafana automatiskt (sidecar läser ConfigMaps med labeln `grafana_dashboard`):
+
+```bash
+kubectl apply -f deploy/monitoring/grafana-dashboard.yaml
+```
+
+Den heter **EventPlan – översikt** och visar requests/sekund, svarstid (p50/p95/p99), felandel (5xx), antal
+backend-pods (HPA) och backend-loggar från Loki.
 
 Grafana nås via port-forward (`kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80`)
 eller via en egen ingress om du vill.
@@ -87,8 +108,11 @@ base64 -w0 k3s.yaml   # macOS: base64 -i k3s.yaml | tr -d '\n'
 
 Port 6443 måste vara öppen mot GitHub Actions (eller använd en VPN om du vill låsa ner den).
 
-GHCR-images: paketen publiceras under din GitHub-användare/organisation. Gör dem publika, eller
-skapa en pull-secret i klustret om du vill hålla dem privata.
+> **GHCR-images måste vara publika.** Klustret har ingen pull-secret, så om paketen är privata får pods
+> `ImagePullBackOff` och deployen hänger. Efter första körningen av pipelinen: GitHub → din profil/organisation →
+> Packages → `eventplan-backend` och `eventplan-frontend` → Package settings → Change visibility → Public.
+> (Vill du hålla dem privata måste du skapa en `imagePullSecret` i namespace `eventplan` och referera till den i
+> `backend.yaml`, `frontend.yaml` och `migrate-job.yaml`.)
 
 ## 6. Driftsätt
 

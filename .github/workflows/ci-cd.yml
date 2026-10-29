@@ -48,11 +48,54 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:unit
+      - run: npm run test:integration
+
+  # Riktig e2e: webbläsare -> frontend -> backend -> Postgres. Playwright startar frontend och backend själv
+  # (se frontend/playwright.config.ts), Postgres körs som service-container.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eventapp
+          POSTGRES_PASSWORD: eventapp
+          POSTGRES_DB: eventapp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eventapp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgres://eventapp:eventapp@localhost:5432/eventapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
       - run: npx playwright install --with-deps chromium
+        working-directory: frontend
       - run: npm run test:e2e
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
 
   build-and-deploy:
-    needs: [backend-test, frontend-test]
+    needs: [backend-test, frontend-test, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
@@ -113,8 +156,8 @@ jobs:
           FRONTEND_IMAGE: ${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

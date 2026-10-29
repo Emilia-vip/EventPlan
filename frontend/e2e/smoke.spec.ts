@@ -1,26 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-// Backend körs inte i e2e-testerna. API-anropen mockas så att testet bara kontrollerar frontend.
-test("startsidan listar kommande event från API:t", async ({ page }) => {
-  await page.route("**/events", (route) =>
-    route.fulfill({
-      json: [
-        {
-          id: "00000000-0000-0000-0000-000000000001",
-          title: "Julfest på Söder",
-          description: "Glögg och pepparkakor",
-          location: "Stockholm",
-          startsAt: "2030-12-24T18:00:00.000Z",
-          capacity: 40,
-          seatsTaken: 10,
-          seatsLeft: 30,
-          isFull: false,
-        },
-      ],
-    }),
-  );
+test("startsidan visar hero och eventlistan från backend", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Find something to");
+  // Antingen finns det event i databasen eller så visas tomt-läget. Felläget får inte visas.
+  await expect(page.getByText("Something went wrong")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Upcoming events" })).toBeVisible();
+});
+
+// Här är det enda stället backend medvetet inte används: vi simulerar att den ligger nere.
+test("visar ett felmeddelande med Try again när backend inte går att nå", async ({ page }) => {
+  await page.route("**/events", (route) => route.abort());
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Julfest på Söder" })).toBeVisible();
+  await expect(page.getByText("We couldn't load the events right now.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 });

@@ -1,0 +1,18 @@
+# Skickar all http://-trafik (port 80) vidare till https:// (port 443) i Traefik, som följer med k3s.
+# k3s plockar upp HelmChartConfig automatiskt och konfigurerar om Traefik, ingen helm-installation behövs.
+# Let's Encrypts http-01-utmaning följer omdirigeringen, så certifikaten kan fortfarande förnyas.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true

@@ -37,6 +37,9 @@ spec:
               value: "3000"
             - name: HOST
               value: "0.0.0.0"
+            # Frontend ligger på en annan domän, så API:t måste tillåta den (CORS)
+            - name: CORS_ORIGIN
+              value: "https://cdn.${DOMAIN}"
           # Ger load balancern tid att sluta skicka trafik innan processen stängs ned
           lifecycle:
             preStop:

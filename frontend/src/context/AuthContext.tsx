@@ -3,21 +3,8 @@ import type { ReactNode } from "react";
 import { AUTH_EXPIRED_EVENT } from "../errors";
 import { login as loginRequest, me, signup as signupRequest } from "../services/auth";
 import type { Session, UserDto } from "../services/auth";
+import { clearToken, getToken, setToken } from "../session";
 import type { LoginInput, SignupInput } from "../validation";
-
-const TOKEN_KEY = "token";
-
-function getToken(): string | null {
-  return typeof window === "undefined" ? null : window.localStorage.getItem(TOKEN_KEY);
-}
-
-function setToken(token: string): void {
-  window.localStorage.setItem(TOKEN_KEY, token);
-}
-
-function clearToken(): void {
-  window.localStorage.removeItem(TOKEN_KEY);
-}
 
 type AuthState = {
   user: UserDto | null;

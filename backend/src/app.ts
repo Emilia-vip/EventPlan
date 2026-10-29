@@ -1,3 +1,4 @@
+import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { collectDefaultMetrics, Counter, Histogram, Registry } from "prom-client";
 import { ZodError } from "zod";
@@ -6,8 +7,24 @@ import { authRoutes } from "./routes/auth.js";
 import { AppError } from "./errors.js";
 import { eventsRoutes } from "./routes/events.js";
 
-export async function buildApp() {
+// CORS_ORIGIN: kommaseparerad lista med domäner som får anropa API:t från en webbläsare,
+// t.ex. https://cdn.example.se. Frontend och API ligger på olika domäner i produktion.
+export function parseCorsOrigins(value = process.env.CORS_ORIGIN): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+}
+
+export async function buildApp({ corsOrigins = parseCorsOrigins() }: { corsOrigins?: string[] } = {}) {
   const app = Fastify({ logger: true });
+
+  await app.register(cors, {
+    origin: corsOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    maxAge: 600,
+  });
 
   const registry = new Registry();
   collectDefaultMetrics({ register: registry });

@@ -10,10 +10,19 @@ grafana:
   # Loki läggs till som datakälla i Grafana (se loki-values.yaml)
   additionalDataSources:
     - name: Loki
+      uid: loki
       type: loki
       url: http://loki.monitoring.svc.cluster.local:3100
       access: proxy
       isDefault: false
+
+  # Prometheus-datakällan får ett fast uid så att dashboarden hittar den
+  sidecar:
+    datasources:
+      uid: prometheus
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
 
 alertmanager:
   enabled: false
