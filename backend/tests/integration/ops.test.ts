@@ -38,3 +38,25 @@ describe("driftsendpoints", () => {
     expect(res.body).not.toContain("00000000-0000-0000-0000-000000000000");
   });
 });
+
+describe("klientfel från Fastify", () => {
+  it("trasig JSON ger 400, inte 500", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      headers: { "content-type": "application/json" },
+      payload: "{trasig",
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: "FST_ERR_CTP_INVALID_JSON_BODY" });
+  });
+
+  it("tom body med Content-Type: application/json ger 400, inte 500", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      headers: { "content-type": "application/json" },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});

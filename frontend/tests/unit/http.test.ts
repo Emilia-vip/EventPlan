@@ -57,4 +57,16 @@ describe("request", () => {
     await expect(request("/auth/me")).rejects.toMatchObject({ status: 401 });
     expect(store.has("meeting-point.token")).toBe(false);
   });
+
+  it("skickar inte Content-Type när anropet saknar body", async () => {
+    fetchMock.mockResolvedValue(json(200, {}));
+    await request("/events/1/registrations", { method: "POST" });
+    expect(fetchMock.mock.calls[0]![1].headers).not.toHaveProperty("Content-Type");
+  });
+
+  it("skickar Content-Type: application/json när anropet har body", async () => {
+    fetchMock.mockResolvedValue(json(200, {}));
+    await request("/auth/login", { method: "POST", body: "{}" });
+    expect(fetchMock.mock.calls[0]![1].headers["Content-Type"]).toBe("application/json");
+  });
 });

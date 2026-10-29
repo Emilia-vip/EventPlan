@@ -67,6 +67,15 @@ export async function buildApp({ corsOrigins = parseCorsOrigins() }: { corsOrigi
       });
     }
 
+    // Fastifys egna klientfel (trasig JSON, för stor body, osv) ska behålla sin statuskod
+    const status = (error as { statusCode?: number }).statusCode;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      return reply.status(status).send({
+        error: (error as { code?: string }).code ?? "BAD_REQUEST",
+        message: error instanceof Error ? error.message : "Ogiltig förfrågan",
+      });
+    }
+
     request.log.error(error);
     return reply.status(500).send({
       error: "INTERNAL",

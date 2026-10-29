@@ -10,7 +10,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     res = await fetch(`${API_BASE}${path}`, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
+        // Fastify svarar 400 på en tom body med Content-Type: application/json, så sätt den bara när det finns en body
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
